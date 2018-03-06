@@ -1,9 +1,12 @@
+import argparse
+import hvac
+import urllib3
 from flask import Flask, request
 # from flask import got_request_exception
 from flask_restful import Resource, Api
 from flask_jsonpify import jsonify
-import hvac
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # # generic error handling
 # def log_exception(sender, exception, **extra):
@@ -18,14 +21,22 @@ import hvac
 # }
 
 app = Flask(__name__)
+parser = argparse.ArgumentParser(description='Vault Token Tower')
+parser.add_argument('--vault-host', required=False, default='vault', help='Vault Hostname')
+parser.add_argument('--vault-port', required=False, default=8200, help='Vault Port')
+parser.add_argument('--vault-ssl', action='store_true', help='Vault SSL')
+parser.add_argument('--debug', action='store_true', help='Debug')
+args = vars(parser.parse_args())
+
+connection_scheme = 'http'
+if args['vault_ssl']:
+    connection_scheme = 'https'
+vault_uri = '{}://{}:{}'.format(connection_scheme, args['vault_host'], args['vault_port'])
 # got_request_exception.connect(log_exception, app)
 # api = Api(app, errors=errors)
 api = Api(app)
-
-# initialize vault client
-#TODO make hostname a variable
-vc = hvac.Client(url="http://vault:8200", token=open('token', 'r').read())
-
+vc = hvac.Client(url=vault_uri, token=open('token', 'r').read().strip(), verify=False)
+assert vc.is_authenticated()
 
 class get_token(Resource):
     """
@@ -86,4 +97,4 @@ api.add_resource(get_roleid, '/roleid/<role_name>')
 api.add_resource(get_wrap_token, '/wraptoken/<role_name>')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',port=5000,debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=args['debug'])
