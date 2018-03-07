@@ -1,8 +1,7 @@
 import argparse
 import hvac
 import urllib3
-from flask import Flask, request
-# from flask import got_request_exception
+from flask import Flask
 from flask_restful import Resource, Api
 from flask_jsonpify import jsonify
 
